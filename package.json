@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "node --import tsx test/scoring.test.ts"
+    "test": "npm run test:scoring && npm run test:typosquat && npm run test:ratelimit && npm run test:reportsstore",
+    "test:scoring": "node --import tsx test/scoring.test.ts",
+    "test:typosquat": "node --import tsx test/typosquat.test.ts",
+    "test:ratelimit": "node --import tsx test/rateLimit.test.ts",
+    "test:reportsstore": "node --import tsx test/reportsStore.test.ts"
   },
   "dependencies": {
     "react": "^18.3.1",

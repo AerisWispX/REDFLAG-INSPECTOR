@@ -34,15 +34,28 @@ async function ensureStore(): Promise<void> {
   }
 }
 
+// In-memory mirror of the file, populated on first read and kept in sync on
+// every write. The public feed (listReports) can be hit on every page load
+// of the Community tab; without this, that's a disk read + JSON.parse on
+// every single request for data that only actually changes on a submit/
+// confirm/moderate call. Correctness note: this is safe specifically
+// because this file is the ONLY writer of DATA_FILE within this process
+// (writeAll always updates both disk and this cache together) — it does
+// not protect against another process also writing the same file, which is
+// already out of scope, see the note at the bottom of this file.
+let memoryCache: ScamReport[] | null = null;
+
 async function readAll(): Promise<ScamReport[]> {
+  if (memoryCache) return memoryCache;
   await ensureStore();
   try {
     const raw = await fs.readFile(DATA_FILE, "utf-8");
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    memoryCache = Array.isArray(parsed) ? parsed : [];
   } catch {
-    return []; // corrupt/missing file reads as empty rather than crashing the endpoint
+    memoryCache = []; // corrupt/missing file reads as empty rather than crashing the endpoint
   }
+  return memoryCache;
 }
 
 async function writeAll(reports: ScamReport[]): Promise<void> {
@@ -53,6 +66,7 @@ async function writeAll(reports: ScamReport[]): Promise<void> {
   const tmp = `${DATA_FILE}.${process.pid}.${Date.now()}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(reports, null, 2), "utf-8");
   await fs.rename(tmp, DATA_FILE);
+  memoryCache = reports;
 }
 
 // Serializes every write through this process against this file — see the

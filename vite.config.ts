@@ -18,6 +18,26 @@ function sendJson(res: any, status: number, body: unknown, extraHeaders?: Record
   res.end(JSON.stringify(body));
 }
 
+// Baseline security headers on every response, API and page alike — cheap,
+// standard, and worth having even for a hackathon-scale server. Not a
+// substitute for a real CSP (which this static-HTML-plus-Vite setup would
+// need to hand-tune against Vite's own dev-time inline scripts to avoid
+// breaking HMR), just the headers that cost nothing to always send.
+function applySecurityHeaders(): Plugin {
+  return {
+    name: "security-headers-plugin",
+    configureServer(server) {
+      server.middlewares.use((_req, res, next) => {
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        res.setHeader("X-Frame-Options", "DENY");
+        res.setHeader("Referrer-Policy", "same-origin");
+        res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+        next();
+      });
+    },
+  };
+}
+
 function apiEnrichPlugin(): Plugin {
   return {
     name: "api-enrich-plugin",
@@ -120,7 +140,7 @@ export default defineConfig(({ mode }) => {
   Object.assign(process.env, env);
 
   return {
-    plugins: [react(), apiEnrichPlugin(), apiReportsPlugin()],
+    plugins: [react(), applySecurityHeaders(), apiEnrichPlugin(), apiReportsPlugin()],
     server: {
       port: 5173,
       host: true,

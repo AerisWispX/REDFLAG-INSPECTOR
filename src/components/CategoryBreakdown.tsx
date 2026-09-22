@@ -50,6 +50,7 @@ export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({ categories
                 className="category-header-btn"
                 onClick={() => toggleCategory(cat.id)}
                 aria-expanded={isExpanded}
+                aria-controls={`category-panel-${cat.id}`}
               >
                 <div className="category-header-left">
                   <span
@@ -79,7 +80,7 @@ export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({ categories
               </button>
 
               {isExpanded && (
-                <div className="category-expanded-content">
+                <div className="category-expanded-content" id={`category-panel-${cat.id}`} role="region" aria-label={`${cat.name} signals`}>
                   {cat.hits.length === 0 ? (
                     <div style={{ fontSize: "13px", color: "var(--text-dim)", fontStyle: "italic", display: "flex", alignItems: "center", gap: "6px" }}>
                       <CheckCircle2 size={14} style={{ color: "var(--safe)" }} />

@@ -11,6 +11,7 @@
 //    src/components/AdminPanel.tsx for why that's the deliberate scope for
 //    this pass, and what a real multi-admin deployment would need instead.
 
+import { timingSafeEqual } from "node:crypto";
 import { ScamReport, ScamReportInput } from "../src/lib/types";
 import { listReports, createReport, confirmReport, moderateReport } from "./reportsStore";
 import { reportSubmitLimiter, reportConfirmLimiter } from "../src/lib/rateLimit";
@@ -70,7 +71,18 @@ function isAdminAuthorized(providedKey: string | undefined): boolean {
   // entirely rather than defaulting open — an unset secret must never mean
   // "anyone is admin".
   if (!adminKey) return false;
-  return typeof providedKey === "string" && providedKey.length > 0 && providedKey === adminKey;
+  if (typeof providedKey !== "string" || providedKey.length === 0) return false;
+
+  // Constant-time comparison: a plain `===` here leaks timing information
+  // proportional to how many leading characters match, which is a real
+  // (if narrow) side channel for guessing a secret byte-by-byte.
+  // timingSafeEqual requires equal-length buffers, so mismatched lengths
+  // are rejected up front — that length check alone isn't a meaningful
+  // leak (unlike leaking *which* character differs).
+  const a = Buffer.from(providedKey);
+  const b = Buffer.from(adminKey);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
 export async function handleModerateReport(

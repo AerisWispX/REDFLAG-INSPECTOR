@@ -10,8 +10,12 @@ import { LiveVerificationPanel } from "./components/LiveVerificationPanel";
 import { AiAnalysisPanel } from "./components/AiAnalysisPanel";
 import { ScanHistoryPanel } from "./components/ScanHistoryPanel";
 import { ReportButton } from "./components/ReportButton";
-import { ReportsFeed } from "./components/ReportsFeed";
-import { AdminPanel } from "./components/AdminPanel";
+// Lazy-loaded: neither view is needed for the default (scanner) view most
+// visitors land on, so they're split into their own chunks and only
+// fetched the first time someone actually clicks the Community/Admin tab,
+// instead of paying for their code on every initial page load.
+const ReportsFeed = React.lazy(() => import("./components/ReportsFeed").then((m) => ({ default: m.ReportsFeed })));
+const AdminPanel = React.lazy(() => import("./components/AdminPanel").then((m) => ({ default: m.AdminPanel })));
 import { scanText, band, applyLiveEnrichment } from "./lib/scoring";
 import { extractEmails, extractUrls } from "./lib/extract";
 import {
@@ -266,11 +270,15 @@ export const App: React.FC = () => {
 
       {view === "community" ? (
         <main className="view-container">
-          <ReportsFeed />
+          <React.Suspense fallback={<div className="loading-row"><div className="spinner" /><span>Loading…</span></div>}>
+            <ReportsFeed />
+          </React.Suspense>
         </main>
       ) : view === "admin" ? (
         <main className="view-container">
-          <AdminPanel />
+          <React.Suspense fallback={<div className="loading-row"><div className="spinner" /><span>Loading…</span></div>}>
+            <AdminPanel />
+          </React.Suspense>
         </main>
       ) : (
         <main className="inspector-grid">
